@@ -9,8 +9,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/mrjoshuak/gotio/opentime"
-	"github.com/mrjoshuak/gotio/opentimelineio"
+	"github.com/Avalanche-io/gotio/opentime"
+	"github.com/Avalanche-io/gotio/opentimelineio"
 )
 
 // Encoder writes OTIO timelines as XGES XML

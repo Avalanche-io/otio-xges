@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mrjoshuak/gotio/opentime"
-	"github.com/mrjoshuak/gotio/opentimelineio"
+	"github.com/Avalanche-io/gotio/opentime"
+	"github.com/Avalanche-io/gotio/opentimelineio"
 )
 
 // Example of decoding an XGES file

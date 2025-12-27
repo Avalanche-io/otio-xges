@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mrjoshuak/gotio/opentime"
-	"github.com/mrjoshuak/gotio/opentimelineio"
+	"github.com/Avalanche-io/gotio/opentime"
+	"github.com/Avalanche-io/gotio/opentimelineio"
 )
 
 const simpleXGES = `<?xml version="1.0" ?>
