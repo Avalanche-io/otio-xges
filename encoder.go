@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/Avalanche-io/gotio/opentime"
-	"github.com/Avalanche-io/gotio/opentimelineio"
+	"github.com/Avalanche-io/gotio"
 )
 
 // Encoder writes OTIO timelines as XGES XML
@@ -28,7 +28,7 @@ func NewEncoder(w io.Writer) *Encoder {
 }
 
 // Encode converts an OTIO Timeline to XGES and writes it
-func (e *Encoder) Encode(timeline *opentimelineio.Timeline) error {
+func (e *Encoder) Encode(timeline *gotio.Timeline) error {
 	// Determine the frame rate from the timeline
 	e.extractFrameRate(timeline)
 
@@ -121,11 +121,11 @@ func (e *Encoder) Encode(timeline *opentimelineio.Timeline) error {
 }
 
 // extractFrameRate extracts the frame rate from the timeline
-func (e *Encoder) extractFrameRate(timeline *opentimelineio.Timeline) {
+func (e *Encoder) extractFrameRate(timeline *gotio.Timeline) {
 	// Try to get rate from first video clip
 	for _, track := range timeline.VideoTracks() {
 		for _, child := range track.Children() {
-			if clip, ok := child.(*opentimelineio.Clip); ok {
+			if clip, ok := child.(*gotio.Clip); ok {
 				dur, err := clip.Duration()
 				if err == nil && dur.Rate() > 0 {
 					e.rate = dur.Rate()
@@ -138,7 +138,7 @@ func (e *Encoder) extractFrameRate(timeline *opentimelineio.Timeline) {
 	// Try audio tracks
 	for _, track := range timeline.AudioTracks() {
 		for _, child := range track.Children() {
-			if clip, ok := child.(*opentimelineio.Clip); ok {
+			if clip, ok := child.(*gotio.Clip); ok {
 				dur, err := clip.Duration()
 				if err == nil && dur.Rate() > 0 {
 					e.rate = dur.Rate()
@@ -150,7 +150,7 @@ func (e *Encoder) extractFrameRate(timeline *opentimelineio.Timeline) {
 }
 
 // buildProjectMetadatas creates project metadata string
-func (e *Encoder) buildProjectMetadatas(timeline *opentimelineio.Timeline) string {
+func (e *Encoder) buildProjectMetadatas(timeline *gotio.Timeline) string {
 	if timeline.Name() == "" {
 		return "metadatas;"
 	}
@@ -165,7 +165,7 @@ func (e *Encoder) buildTimelineProperties() string {
 }
 
 // buildTimelineMetadatas creates timeline metadata string
-func (e *Encoder) buildTimelineMetadatas(timeline *opentimelineio.Timeline) string {
+func (e *Encoder) buildTimelineMetadatas(timeline *gotio.Timeline) string {
 	parts := []string{"metadatas"}
 
 	// Add framerate
@@ -188,7 +188,7 @@ func (e *Encoder) buildAudioTrackProperties() string {
 }
 
 // convertTrackToLayer converts an OTIO track to an XGES layer
-func (e *Encoder) convertTrackToLayer(track *opentimelineio.Track, priority int, clipID *int, trackType int) (*Layer, error) {
+func (e *Encoder) convertTrackToLayer(track *gotio.Track, priority int, clipID *int, trackType int) (*Layer, error) {
 	layer := &Layer{
 		Priority:   priority,
 		Properties: "properties, auto-transition=(boolean)true;",
@@ -200,7 +200,7 @@ func (e *Encoder) convertTrackToLayer(track *opentimelineio.Track, priority int,
 
 	for _, child := range track.Children() {
 		// Skip gaps - they're implicit in XGES
-		if _, isGap := child.(*opentimelineio.Gap); isGap {
+		if _, isGap := child.(*gotio.Gap); isGap {
 			dur, err := child.Duration()
 			if err != nil {
 				return nil, err
@@ -210,7 +210,7 @@ func (e *Encoder) convertTrackToLayer(track *opentimelineio.Track, priority int,
 		}
 
 		// Convert clip
-		if clip, isClip := child.(*opentimelineio.Clip); isClip {
+		if clip, isClip := child.(*gotio.Clip); isClip {
 			xgesClip, err := e.convertClip(clip, currentTime, priority, trackType, *clipID)
 			if err != nil {
 				return nil, err
@@ -227,7 +227,7 @@ func (e *Encoder) convertTrackToLayer(track *opentimelineio.Track, priority int,
 		}
 
 		// Convert transition
-		if transition, isTrans := child.(*opentimelineio.Transition); isTrans {
+		if transition, isTrans := child.(*gotio.Transition); isTrans {
 			xgesClip, err := e.convertTransition(transition, currentTime, priority, trackType, *clipID)
 			if err != nil {
 				return nil, err
@@ -246,7 +246,7 @@ func (e *Encoder) convertTrackToLayer(track *opentimelineio.Track, priority int,
 }
 
 // convertClip converts an OTIO Clip to an XGES Clip
-func (e *Encoder) convertClip(clip *opentimelineio.Clip, startTime uint64, priority int, trackType int, id int) (*Clip, error) {
+func (e *Encoder) convertClip(clip *gotio.Clip, startTime uint64, priority int, trackType int, id int) (*Clip, error) {
 	duration, err := clip.Duration()
 	if err != nil {
 		return nil, err
@@ -269,7 +269,7 @@ func (e *Encoder) convertClip(clip *opentimelineio.Clip, startTime uint64, prior
 
 	if ref := clip.MediaReference(); ref != nil {
 		switch mediaRef := ref.(type) {
-		case *opentimelineio.ExternalReference:
+		case *gotio.ExternalReference:
 			// URI clip
 			assetID = mediaRef.TargetURL()
 			typeName = ClipTypeURI
@@ -277,7 +277,7 @@ func (e *Encoder) convertClip(clip *opentimelineio.Clip, startTime uint64, prior
 				assetID = "file:///missing"
 			}
 
-		case *opentimelineio.GeneratorReference:
+		case *gotio.GeneratorReference:
 			// Check if this is a title clip
 			if mediaRef.GeneratorKind() == "title" {
 				typeName = ClipTypeTitle
@@ -329,7 +329,7 @@ func (e *Encoder) convertClip(clip *opentimelineio.Clip, startTime uint64, prior
 }
 
 // extractTitleProperties extracts title text and builds children-properties
-func (e *Encoder) extractTitleProperties(clip *opentimelineio.Clip) string {
+func (e *Encoder) extractTitleProperties(clip *gotio.Clip) string {
 	metadata := clip.Metadata()
 	if metadata == nil {
 		return ""
@@ -355,7 +355,7 @@ func (e *Encoder) extractTitleProperties(clip *opentimelineio.Clip) string {
 }
 
 // extractChildrenProperties extracts children-properties from clip metadata
-func (e *Encoder) extractChildrenProperties(clip *opentimelineio.Clip) string {
+func (e *Encoder) extractChildrenProperties(clip *gotio.Clip) string {
 	metadata := clip.Metadata()
 	if metadata == nil {
 		return ""
@@ -374,7 +374,7 @@ func (e *Encoder) extractChildrenProperties(clip *opentimelineio.Clip) string {
 }
 
 // convertTransition converts an OTIO Transition to an XGES Clip
-func (e *Encoder) convertTransition(transition *opentimelineio.Transition, startTime uint64, priority int, trackType int, id int) (*Clip, error) {
+func (e *Encoder) convertTransition(transition *gotio.Transition, startTime uint64, priority int, trackType int, id int) (*Clip, error) {
 	duration := transition.InOffset().Add(transition.OutOffset())
 
 	// Map OTIO transition type to GES asset ID
@@ -417,9 +417,9 @@ func (e *Encoder) convertTransition(transition *opentimelineio.Transition, start
 }
 
 // reverseMapTransitionType maps OTIO transition types back to GES asset IDs
-func (e *Encoder) reverseMapTransitionType(transitionType opentimelineio.TransitionType) string {
+func (e *Encoder) reverseMapTransitionType(transitionType gotio.TransitionType) string {
 	switch transitionType {
-	case opentimelineio.TransitionTypeSMPTEDissolve:
+	case gotio.TransitionTypeSMPTEDissolve:
 		return "crossfade"
 	case "SMPTE_Wipe":
 		return "wipe"
@@ -431,7 +431,7 @@ func (e *Encoder) reverseMapTransitionType(transitionType opentimelineio.Transit
 		return "box-wipe"
 	default:
 		// For custom transitions, use the type as-is
-		if transitionType == "" || transitionType == opentimelineio.TransitionTypeCustom {
+		if transitionType == "" || transitionType == gotio.TransitionTypeCustom {
 			return "crossfade"
 		}
 		return string(transitionType)

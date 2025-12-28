@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/Avalanche-io/gotio/opentime"
-	"github.com/Avalanche-io/gotio/opentimelineio"
+	"github.com/Avalanche-io/gotio"
 )
 
 const simpleXGES = `<?xml version="1.0" ?>
@@ -80,7 +80,7 @@ func TestDecoder_DecodeSimple(t *testing.T) {
 		// Should have 2 clips
 		clipCount := 0
 		for _, child := range children {
-			if _, ok := child.(*opentimelineio.Clip); ok {
+			if _, ok := child.(*gotio.Clip); ok {
 				clipCount++
 			}
 		}
@@ -90,7 +90,7 @@ func TestDecoder_DecodeSimple(t *testing.T) {
 		}
 
 		// Check first clip
-		if clip, ok := children[0].(*opentimelineio.Clip); ok {
+		if clip, ok := children[0].(*gotio.Clip); ok {
 			if clip.Name() != "clip1" {
 				t.Errorf("Expected first clip name 'clip1', got '%s'", clip.Name())
 			}
@@ -102,7 +102,7 @@ func TestDecoder_DecodeSimple(t *testing.T) {
 			}
 
 			if ref := clip.MediaReference(); ref != nil {
-				if extRef, ok := ref.(*opentimelineio.ExternalReference); ok {
+				if extRef, ok := ref.(*gotio.ExternalReference); ok {
 					if extRef.TargetURL() != "file:///example/video.mp4" {
 						t.Errorf("Expected URL 'file:///example/video.mp4', got '%s'", extRef.TargetURL())
 					}
@@ -112,7 +112,7 @@ func TestDecoder_DecodeSimple(t *testing.T) {
 
 		// Check second clip
 		if len(children) > 1 {
-			if clip, ok := children[1].(*opentimelineio.Clip); ok {
+			if clip, ok := children[1].(*gotio.Clip); ok {
 				if clip.Name() != "clip2" {
 					t.Errorf("Expected second clip name 'clip2', got '%s'", clip.Name())
 				}
@@ -142,7 +142,7 @@ func TestDecoder_DecodeSimple(t *testing.T) {
 
 		clipCount := 0
 		for _, child := range children {
-			if _, ok := child.(*opentimelineio.Clip); ok {
+			if _, ok := child.(*gotio.Clip); ok {
 				clipCount++
 			}
 		}
@@ -178,9 +178,9 @@ func TestDecoder_DecodeWithTransition(t *testing.T) {
 
 	for _, child := range children {
 		switch child.(type) {
-		case *opentimelineio.Transition:
+		case *gotio.Transition:
 			transitionCount++
-		case *opentimelineio.Clip:
+		case *gotio.Clip:
 			clipCount++
 		}
 	}
@@ -196,26 +196,26 @@ func TestDecoder_DecodeWithTransition(t *testing.T) {
 
 func TestEncoder_Encode(t *testing.T) {
 	// Create a simple timeline
-	timeline := opentimelineio.NewTimeline("My Timeline", nil, nil)
+	timeline := gotio.NewTimeline("My Timeline", nil, nil)
 
 	// Create video track
-	videoTrack := opentimelineio.NewTrack("video", nil, opentimelineio.TrackKindVideo, nil, nil)
+	videoTrack := gotio.NewTrack("video", nil, gotio.TrackKindVideo, nil, nil)
 
 	// Add clips
 	rate := 25.0
-	ref1 := opentimelineio.NewExternalReference("", "file:///test1.mp4", nil, nil)
+	ref1 := gotio.NewExternalReference("", "file:///test1.mp4", nil, nil)
 	sourceRange1 := opentime.NewTimeRange(
 		opentime.NewRationalTime(0, rate),
 		opentime.NewRationalTime(50, rate), // 2 seconds at 25fps
 	)
-	clip1 := opentimelineio.NewClip("clip1", ref1, &sourceRange1, nil, nil, nil, "", nil)
+	clip1 := gotio.NewClip("clip1", ref1, &sourceRange1, nil, nil, nil, "", nil)
 
-	ref2 := opentimelineio.NewExternalReference("", "file:///test2.mp4", nil, nil)
+	ref2 := gotio.NewExternalReference("", "file:///test2.mp4", nil, nil)
 	sourceRange2 := opentime.NewTimeRange(
 		opentime.NewRationalTime(25, rate),
 		opentime.NewRationalTime(75, rate), // 3 seconds at 25fps
 	)
-	clip2 := opentimelineio.NewClip("clip2", ref2, &sourceRange2, nil, nil, nil, "", nil)
+	clip2 := gotio.NewClip("clip2", ref2, &sourceRange2, nil, nil, nil, "", nil)
 
 	videoTrack.AppendChild(clip1)
 	videoTrack.AppendChild(clip2)
@@ -448,9 +448,9 @@ func TestDecoder_TestClip(t *testing.T) {
 	children := videoTracks[0].Children()
 
 	// Find the test clip
-	var testClip *opentimelineio.Clip
+	var testClip *gotio.Clip
 	for _, child := range children {
-		if clip, ok := child.(*opentimelineio.Clip); ok {
+		if clip, ok := child.(*gotio.Clip); ok {
 			if clip.Name() == "test-pattern" {
 				testClip = clip
 				break
@@ -468,7 +468,7 @@ func TestDecoder_TestClip(t *testing.T) {
 		t.Fatal("Test clip has no media reference")
 	}
 
-	genRef, ok := ref.(*opentimelineio.GeneratorReference)
+	genRef, ok := ref.(*gotio.GeneratorReference)
 	if !ok {
 		t.Fatalf("Expected GeneratorReference, got %T", ref)
 	}
@@ -505,9 +505,9 @@ func TestDecoder_TitleClip(t *testing.T) {
 	children := videoTracks[0].Children()
 
 	// Find the title clip
-	var titleClip *opentimelineio.Clip
+	var titleClip *gotio.Clip
 	for _, child := range children {
-		if clip, ok := child.(*opentimelineio.Clip); ok {
+		if clip, ok := child.(*gotio.Clip); ok {
 			if clip.Name() == "title-overlay" {
 				titleClip = clip
 				break
@@ -525,7 +525,7 @@ func TestDecoder_TitleClip(t *testing.T) {
 		t.Fatal("Title clip has no media reference")
 	}
 
-	genRef, ok := ref.(*opentimelineio.GeneratorReference)
+	genRef, ok := ref.(*gotio.GeneratorReference)
 	if !ok {
 		t.Fatalf("Expected GeneratorReference, got %T", ref)
 	}
@@ -575,9 +575,9 @@ func TestDecoder_TransitionTypes(t *testing.T) {
 	children := videoTracks[0].Children()
 
 	// Find the wipe transition
-	var wipeTransition *opentimelineio.Transition
+	var wipeTransition *gotio.Transition
 	for _, child := range children {
-		if trans, ok := child.(*opentimelineio.Transition); ok {
+		if trans, ok := child.(*gotio.Transition); ok {
 			if trans.Name() == "wipe-transition" {
 				wipeTransition = trans
 				break
@@ -607,26 +607,26 @@ func TestDecoder_TransitionTypes(t *testing.T) {
 }
 
 func TestEncoder_GeneratorReference(t *testing.T) {
-	timeline := opentimelineio.NewTimeline("Test", nil, nil)
-	videoTrack := opentimelineio.NewTrack("video", nil, opentimelineio.TrackKindVideo, nil, nil)
+	timeline := gotio.NewTimeline("Test", nil, nil)
+	videoTrack := gotio.NewTrack("video", nil, gotio.TrackKindVideo, nil, nil)
 
 	// Test pattern clip
 	rate := 25.0
-	genRef := opentimelineio.NewGeneratorReference("", "bars", nil, nil, nil)
+	genRef := gotio.NewGeneratorReference("", "bars", nil, nil, nil)
 	sourceRange := opentime.NewTimeRange(
 		opentime.NewRationalTime(0, rate),
 		opentime.NewRationalTime(25, rate),
 	)
-	testClip := opentimelineio.NewClip("test-pattern", genRef, &sourceRange, nil, nil, nil, "", nil)
+	testClip := gotio.NewClip("test-pattern", genRef, &sourceRange, nil, nil, nil, "", nil)
 	videoTrack.AppendChild(testClip)
 
 	// Title clip
-	titleRef := opentimelineio.NewGeneratorReference("", "title", nil, nil, nil)
+	titleRef := gotio.NewGeneratorReference("", "title", nil, nil, nil)
 	titleRange := opentime.NewTimeRange(
 		opentime.NewRationalTime(0, rate),
 		opentime.NewRationalTime(50, rate),
 	)
-	titleClip := opentimelineio.NewClip("title", titleRef, &titleRange, nil, nil, nil, "", nil)
+	titleClip := gotio.NewClip("title", titleRef, &titleRange, nil, nil, nil, "", nil)
 
 	// Add text metadata
 	titleMetadata := map[string]interface{}{
@@ -704,12 +704,12 @@ func TestRoundTrip_NewFeatures(t *testing.T) {
 		clipCount1 := 0
 		clipCount2 := 0
 		for _, c := range children1 {
-			if _, ok := c.(*opentimelineio.Clip); ok {
+			if _, ok := c.(*gotio.Clip); ok {
 				clipCount1++
 			}
 		}
 		for _, c := range children2 {
-			if _, ok := c.(*opentimelineio.Clip); ok {
+			if _, ok := c.(*gotio.Clip); ok {
 				clipCount2++
 			}
 		}

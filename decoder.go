@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/Avalanche-io/gotio/opentime"
-	"github.com/Avalanche-io/gotio/opentimelineio"
+	"github.com/Avalanche-io/gotio"
 )
 
 // Decoder reads and decodes XGES data
@@ -30,7 +30,7 @@ func NewDecoder(r io.Reader) *Decoder {
 }
 
 // Decode reads XGES XML and converts it to an OTIO Timeline
-func (d *Decoder) Decode() (*opentimelineio.Timeline, error) {
+func (d *Decoder) Decode() (*gotio.Timeline, error) {
 	var ges GES
 	decoder := xml.NewDecoder(d.r)
 	if err := decoder.Decode(&ges); err != nil {
@@ -122,12 +122,12 @@ func (d *Decoder) unescapeGstString(s string) string {
 }
 
 // convertTimeline converts an XGES Timeline to an OTIO Timeline
-func (d *Decoder) convertTimeline(xgesTimeline *Timeline) (*opentimelineio.Timeline, error) {
+func (d *Decoder) convertTimeline(xgesTimeline *Timeline) (*gotio.Timeline, error) {
 	// Create the timeline
-	timeline := opentimelineio.NewTimeline("", nil, nil)
+	timeline := gotio.NewTimeline("", nil, nil)
 
 	// Create tracks based on the track types
-	tracksByType := make(map[int]*opentimelineio.Track)
+	tracksByType := make(map[int]*gotio.Track)
 	for _, track := range xgesTimeline.Tracks {
 		otioTrack := d.createTrack(&track)
 		tracksByType[track.TrackType] = otioTrack
@@ -154,17 +154,17 @@ func (d *Decoder) convertTimeline(xgesTimeline *Timeline) (*opentimelineio.Timel
 }
 
 // createTrack creates an OTIO track from an XGES track
-func (d *Decoder) createTrack(xgesTrack *Track) *opentimelineio.Track {
-	kind := opentimelineio.TrackKindVideo
+func (d *Decoder) createTrack(xgesTrack *Track) *gotio.Track {
+	kind := gotio.TrackKindVideo
 	if xgesTrack.TrackType == TrackTypeAudio {
-		kind = opentimelineio.TrackKindAudio
+		kind = gotio.TrackKindAudio
 	}
 
-	return opentimelineio.NewTrack("", nil, kind, nil, nil)
+	return gotio.NewTrack("", nil, kind, nil, nil)
 }
 
 // processLayer processes an XGES layer and adds clips to tracks
-func (d *Decoder) processLayer(layer *Layer, tracksByType map[int]*opentimelineio.Track) error {
+func (d *Decoder) processLayer(layer *Layer, tracksByType map[int]*gotio.Track) error {
 	// Group clips by track type and sort by start time
 	clipsByTrack := make(map[int][]Clip)
 	for _, clip := range layer.Clips {
@@ -188,7 +188,7 @@ func (d *Decoder) processLayer(layer *Layer, tracksByType map[int]*opentimelinei
 }
 
 // addClipsToTrack adds clips to an OTIO track, filling gaps as needed
-func (d *Decoder) addClipsToTrack(track *opentimelineio.Track, clips []Clip) error {
+func (d *Decoder) addClipsToTrack(track *gotio.Track, clips []Clip) error {
 	if len(clips) == 0 {
 		return nil
 	}
@@ -202,7 +202,7 @@ func (d *Decoder) addClipsToTrack(track *opentimelineio.Track, clips []Clip) err
 		// Add gap if needed
 		if xgesClip.Start > currentTime {
 			gapDuration := d.toRationalTime(xgesClip.Start - currentTime)
-			gap := opentimelineio.NewGapWithDuration(gapDuration)
+			gap := gotio.NewGapWithDuration(gapDuration)
 			if err := track.AppendChild(gap); err != nil {
 				return err
 			}
@@ -227,7 +227,7 @@ func (d *Decoder) addClipsToTrack(track *opentimelineio.Track, clips []Clip) err
 }
 
 // convertClip converts an XGES clip to an OTIO composable
-func (d *Decoder) convertClip(xgesClip *Clip) (opentimelineio.Composable, error) {
+func (d *Decoder) convertClip(xgesClip *Clip) (gotio.Composable, error) {
 	// Handle transition clips
 	if xgesClip.TypeName == ClipTypeTransition {
 		return d.convertTransition(xgesClip), nil
@@ -250,11 +250,11 @@ func (d *Decoder) convertClip(xgesClip *Clip) (opentimelineio.Composable, error)
 
 	// Unsupported clip type - return a gap
 	duration := d.toRationalTime(xgesClip.Duration)
-	return opentimelineio.NewGapWithDuration(duration), nil
+	return gotio.NewGapWithDuration(duration), nil
 }
 
 // convertTransition converts a transition clip to an OTIO Transition
-func (d *Decoder) convertTransition(xgesClip *Clip) opentimelineio.Composable {
+func (d *Decoder) convertTransition(xgesClip *Clip) gotio.Composable {
 	duration := d.toRationalTime(xgesClip.Duration)
 
 	// Map GES transition types to OTIO transition types
@@ -265,9 +265,9 @@ func (d *Decoder) convertTransition(xgesClip *Clip) opentimelineio.Composable {
 	// Create transition with in and out offsets (half duration each)
 	halfDuration := opentime.NewRationalTime(duration.Value()/2, duration.Rate())
 
-	transition := opentimelineio.NewTransition(
+	transition := gotio.NewTransition(
 		name,
-		opentimelineio.TransitionType(transitionType),
+		gotio.TransitionType(transitionType),
 		halfDuration,
 		halfDuration,
 		nil,
@@ -291,7 +291,7 @@ func (d *Decoder) mapTransitionType(assetID string) string {
 	// Common GES transition types
 	switch strings.ToLower(assetID) {
 	case "crossfade":
-		return string(opentimelineio.TransitionTypeSMPTEDissolve)
+		return string(gotio.TransitionTypeSMPTEDissolve)
 	case "wipe":
 		return "SMPTE_Wipe"
 	case "clock-wipe":
@@ -307,7 +307,7 @@ func (d *Decoder) mapTransitionType(assetID string) string {
 }
 
 // convertURIClip converts a URI clip to an OTIO Clip
-func (d *Decoder) convertURIClip(xgesClip *Clip) *opentimelineio.Clip {
+func (d *Decoder) convertURIClip(xgesClip *Clip) *gotio.Clip {
 	name := d.extractName(xgesClip.Properties)
 
 	// Create source range
@@ -316,7 +316,7 @@ func (d *Decoder) convertURIClip(xgesClip *Clip) *opentimelineio.Clip {
 	sourceRange := opentime.NewTimeRange(start, duration)
 
 	// Create media reference
-	mediaRef := opentimelineio.NewExternalReference(
+	mediaRef := gotio.NewExternalReference(
 		"",              // name
 		xgesClip.AssetID, // target URL
 		nil,             // available range - could be extracted from asset
@@ -324,7 +324,7 @@ func (d *Decoder) convertURIClip(xgesClip *Clip) *opentimelineio.Clip {
 	)
 
 	// Create clip
-	clip := opentimelineio.NewClip(
+	clip := gotio.NewClip(
 		name,
 		mediaRef,
 		&sourceRange,
@@ -342,7 +342,7 @@ func (d *Decoder) convertURIClip(xgesClip *Clip) *opentimelineio.Clip {
 }
 
 // convertTestClip converts a GESTestClip to an OTIO Clip with GeneratorReference
-func (d *Decoder) convertTestClip(xgesClip *Clip) *opentimelineio.Clip {
+func (d *Decoder) convertTestClip(xgesClip *Clip) *gotio.Clip {
 	name := d.extractName(xgesClip.Properties)
 
 	// Create source range
@@ -357,7 +357,7 @@ func (d *Decoder) convertTestClip(xgesClip *Clip) *opentimelineio.Clip {
 		generatorKind = "black"
 	}
 
-	mediaRef := opentimelineio.NewGeneratorReference(
+	mediaRef := gotio.NewGeneratorReference(
 		"",            // name
 		generatorKind, // generator kind
 		nil,           // parameters
@@ -366,7 +366,7 @@ func (d *Decoder) convertTestClip(xgesClip *Clip) *opentimelineio.Clip {
 	)
 
 	// Create clip
-	clip := opentimelineio.NewClip(
+	clip := gotio.NewClip(
 		name,
 		mediaRef,
 		&sourceRange,
@@ -384,7 +384,7 @@ func (d *Decoder) convertTestClip(xgesClip *Clip) *opentimelineio.Clip {
 }
 
 // convertTitleClip converts a GESTitleClip to an OTIO Clip with metadata
-func (d *Decoder) convertTitleClip(xgesClip *Clip) *opentimelineio.Clip {
+func (d *Decoder) convertTitleClip(xgesClip *Clip) *gotio.Clip {
 	name := d.extractName(xgesClip.Properties)
 
 	// Create source range
@@ -393,7 +393,7 @@ func (d *Decoder) convertTitleClip(xgesClip *Clip) *opentimelineio.Clip {
 	sourceRange := opentime.NewTimeRange(start, duration)
 
 	// Create a generator reference for title/text overlay
-	mediaRef := opentimelineio.NewGeneratorReference(
+	mediaRef := gotio.NewGeneratorReference(
 		"",      // name
 		"title", // generator kind
 		nil,     // parameters
@@ -402,7 +402,7 @@ func (d *Decoder) convertTitleClip(xgesClip *Clip) *opentimelineio.Clip {
 	)
 
 	// Create clip
-	clip := opentimelineio.NewClip(
+	clip := gotio.NewClip(
 		name,
 		mediaRef,
 		&sourceRange,
@@ -441,7 +441,7 @@ func (d *Decoder) convertTitleClip(xgesClip *Clip) *opentimelineio.Clip {
 }
 
 // addChildrenPropertiesToMetadata adds children-properties to clip metadata
-func (d *Decoder) addChildrenPropertiesToMetadata(clip *opentimelineio.Clip, xgesClip *Clip) {
+func (d *Decoder) addChildrenPropertiesToMetadata(clip *gotio.Clip, xgesClip *Clip) {
 	if xgesClip.ChildrenProperties == "" {
 		return
 	}

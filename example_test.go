@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/Avalanche-io/gotio/opentime"
-	"github.com/Avalanche-io/gotio/opentimelineio"
+	"github.com/Avalanche-io/gotio"
 )
 
 // Example of decoding an XGES file
@@ -43,19 +43,19 @@ func ExampleDecoder_Decode() {
 // Example of encoding a timeline to XGES
 func ExampleEncoder_Encode() {
 	// Create a timeline
-	timeline := opentimelineio.NewTimeline("My Edit", nil, nil)
+	timeline := gotio.NewTimeline("My Edit", nil, nil)
 
 	// Create a video track
-	videoTrack := opentimelineio.NewTrack("V1", nil, opentimelineio.TrackKindVideo, nil, nil)
+	videoTrack := gotio.NewTrack("V1", nil, gotio.TrackKindVideo, nil, nil)
 
 	// Add a clip
 	rate := 24.0
-	mediaRef := opentimelineio.NewExternalReference("", "file:///media/clip001.mov", nil, nil)
+	mediaRef := gotio.NewExternalReference("", "file:///media/clip001.mov", nil, nil)
 	sourceRange := opentime.NewTimeRange(
 		opentime.NewRationalTime(0, rate),
 		opentime.NewRationalTime(120, rate), // 5 seconds at 24fps
 	)
-	clip := opentimelineio.NewClip("shot_010", mediaRef, &sourceRange, nil, nil, nil, "", nil)
+	clip := gotio.NewClip("shot_010", mediaRef, &sourceRange, nil, nil, nil, "", nil)
 
 	videoTrack.AppendChild(clip)
 	timeline.Tracks().AppendChild(videoTrack)
